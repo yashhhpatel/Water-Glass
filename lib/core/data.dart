@@ -43,6 +43,8 @@ class GameData extends ChangeNotifier {
       if (const bool.fromEnvironment('WG_UNLOCK')) {
         level = 26;
         coins = 6000;
+        bottle = 96;
+        levelsSinceOffer = 6;
         for (var i = 1; i <= 25; i++) {
           stars[i] = 3;
         }

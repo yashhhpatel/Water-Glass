@@ -37,7 +37,18 @@ class GameData extends ChangeNotifier {
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     final raw = _prefs!.getString(_key);
-    if (raw == null) return;
+    if (raw == null) {
+      // Test builds only (--dart-define=WG_UNLOCK=true): start with progress so
+      // later modes can be checked without replaying every level.
+      if (const bool.fromEnvironment('WG_UNLOCK')) {
+        level = 26;
+        coins = 6000;
+        for (var i = 1; i <= 25; i++) {
+          stars[i] = 3;
+        }
+      }
+      return;
+    }
     try {
       final m = jsonDecode(raw) as Map<String, dynamic>;
       coins = m['coins'] ?? 0;

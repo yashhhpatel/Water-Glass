@@ -124,9 +124,9 @@ class _PackCard extends StatelessWidget {
               Opacity(opacity: unlocked ? 1 : .35, child: LevelThumb(classicLevel(first), w: 200, h: 200)),
               if (!unlocked) ...[
                 Container(width: 200, height: 200, color: const Color(0x66000000)),
-                Positioned(top: 52, child: PaintBox(130, 140, (c, s) => drawLock(c, const Offset(65, 70), 120))),
+                Positioned(top: 16, child: PaintBox(110, 120, (c, s) => drawLock(c, const Offset(55, 60), 100))),
                 Positioned(
-                  bottom: 34,
+                  bottom: 16,
                   child: Column(children: [
                     Row(children: [
                       PaintBox(40, 40, (c, s) => drawStar(c, const Offset(20, 20), 18)),

@@ -189,7 +189,7 @@ class _DontSpillState extends State<DontSpillScreen> with SingleTickerProviderSt
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (e) => _tap(e.localPosition),
-            child: CustomPaint(painter: _DsPainter(this)),
+            child: RepaintBoundary(child: CustomPaint(painter: _DsPainter(this))),
           ),
         ),
         Positioned(

@@ -15,7 +15,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  Widget _btn(String t, double w, VoidCallback onTap) => Pill(t, w: w, h: 80, fs: GameData.I.lang == 'ja' ? 19 : 20, onTap: onTap);
+  Widget _btn(String t, double w, VoidCallback onTap) => Pill(t, w: w, h: 80, fs: GameData.I.lang == 'ja' ? (w < 200 ? 13 : 18) : 20, onTap: onTap);
 
   @override
   Widget build(BuildContext context) {

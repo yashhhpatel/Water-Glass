@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             title: 'FLIPPY GLASS',
             sub: 'Complete level 20 in\nClassic mode to unlock',
             unlocked: d.flippyUnlocked,
-            count: '0/0',
+            count: 'SOON',
             icon: _iconFlippy,
             onTap: () => d.flippyUnlocked ? showComingSoon(context) : showMessage(context, 'FLIPPY GLASS', 'Complete level 20 in\nClassic mode to unlock'),
           ),
@@ -140,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             title: 'PRECISE',
             sub: 'Complete 18 Challenge\nLevels',
             unlocked: d.preciseUnlocked,
-            count: '0/0',
+            count: 'SOON',
             icon: _iconPrecise,
             onTap: () => d.preciseUnlocked ? showComingSoon(context) : showMessage(context, 'PRECISE', 'Complete 18 Challenge\nLevels'),
           ),
@@ -200,10 +200,10 @@ void _paintTitle(Canvas c, double t, Color water) {
   g.paint(c, Offset(288 - g.width / 2, 214));
   // faucet pipe dropping through the middle "A"
   const fx = 288.0;
-  c.drawRect(const Rect.fromLTWH(fx - 15, 196, 30, 108), fillP(C.faucet));
-  c.drawRect(const Rect.fromLTWH(fx - 15, 196, 30, 108), strokeP(const Color(0xFF555555), 1.4));
-  c.drawRect(const Rect.fromLTWH(fx - 19, 304, 38, 12), fillP(const Color(0xFFB7BEC2)));
-  c.drawRect(const Rect.fromLTWH(fx - 19, 304, 38, 12), strokeP(const Color(0xFF555555), 1.4));
+  c.drawRect(const Rect.fromLTWH(fx - 11, 196, 22, 108), fillP(C.faucet));
+  c.drawRect(const Rect.fromLTWH(fx - 11, 196, 22, 108), strokeP(const Color(0xFF555555), 1.4));
+  c.drawRect(const Rect.fromLTWH(fx - 16, 304, 32, 12), fillP(const Color(0xFFB7BEC2)));
+  c.drawRect(const Rect.fromLTWH(fx - 16, 304, 32, 12), strokeP(const Color(0xFF555555), 1.4));
   // pour stream for the first 40% of the cycle
   final pour = t < .4;
   if (pour) {

@@ -55,7 +55,13 @@ void paintWater(Canvas c, List<Offset> pts, Color color, {double scale = 1}) {
   final xf = Float32List(pts.length * 4);
   final rects = Float32List(pts.length * 4);
   final sc = 0.62 * scale; // sprite 32px -> ~20px blob
+  var l = double.infinity, t = double.infinity, r = -double.infinity, b = -double.infinity;
   for (var i = 0; i < pts.length; i++) {
+    final p = pts[i];
+    if (p.dx < l) l = p.dx;
+    if (p.dx > r) r = p.dx;
+    if (p.dy < t) t = p.dy;
+    if (p.dy > b) b = p.dy;
     xf[i * 4] = sc;
     xf[i * 4 + 1] = 0;
     xf[i * 4 + 2] = pts[i].dx - 16 * sc;
@@ -65,7 +71,8 @@ void paintWater(Canvas c, List<Offset> pts, Color color, {double scale = 1}) {
     rects[i * 4 + 2] = 32;
     rects[i * 4 + 3] = 32;
   }
-  const bounds = Rect.fromLTWH(-100, -100, 800, 1500);
+  // keep the offscreen layers as small as the water itself
+  final bounds = Rect.fromLTRB(l, t, r, b).inflate(16 * sc + 2);
   final dark = Color.lerp(color, Colors.black, .22)!;
   for (final pass in [(dark, .32), (color, .5)]) {
     c.saveLayer(bounds, Paint()..colorFilter = _threshold(pass.$1, pass.$2));

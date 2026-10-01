@@ -375,41 +375,47 @@ void drawFaucet(Canvas c, Offset o, {int dir = 0, double len = 140}) {
 
 /// Reward bottle with "?" label, fill 0..1.
 void drawBottle(Canvas c, Offset o, double s, double fill, Color water) {
+  // slim milk-bottle silhouette: long neck, rounded shoulders
+  const nk = .08, bd = .22, top = -.46, neckEnd = -.3, shoulder = -.1, bot = .47;
   final p = Path()
-    ..moveTo(o.dx - s * .12, o.dy - s * .5)
-    ..lineTo(o.dx - s * .12, o.dy - s * .3)
-    ..quadraticBezierTo(o.dx - s * .3, o.dy - s * .18, o.dx - s * .3, o.dy)
-    ..lineTo(o.dx - s * .3, o.dy + s * .42)
-    ..quadraticBezierTo(o.dx - s * .3, o.dy + s * .5, o.dx - s * .22, o.dy + s * .5)
-    ..lineTo(o.dx + s * .22, o.dy + s * .5)
-    ..quadraticBezierTo(o.dx + s * .3, o.dy + s * .5, o.dx + s * .3, o.dy + s * .42)
-    ..lineTo(o.dx + s * .3, o.dy)
-    ..quadraticBezierTo(o.dx + s * .3, o.dy - s * .18, o.dx + s * .12, o.dy - s * .3)
-    ..lineTo(o.dx + s * .12, o.dy - s * .5)
+    ..moveTo(o.dx - s * nk, o.dy + s * top)
+    ..lineTo(o.dx - s * nk, o.dy + s * neckEnd)
+    ..cubicTo(o.dx - s * nk, o.dy + s * (neckEnd + .08), o.dx - s * bd, o.dy + s * (shoulder - .08), o.dx - s * bd, o.dy + s * shoulder)
+    ..lineTo(o.dx - s * bd, o.dy + s * (bot - .05))
+    ..quadraticBezierTo(o.dx - s * bd, o.dy + s * bot, o.dx - s * (bd - .05), o.dy + s * bot)
+    ..lineTo(o.dx + s * (bd - .05), o.dy + s * bot)
+    ..quadraticBezierTo(o.dx + s * bd, o.dy + s * bot, o.dx + s * bd, o.dy + s * (bot - .05))
+    ..lineTo(o.dx + s * bd, o.dy + s * shoulder)
+    ..cubicTo(o.dx + s * bd, o.dy + s * (shoulder - .08), o.dx + s * nk, o.dy + s * (neckEnd + .08), o.dx + s * nk, o.dy + s * neckEnd)
+    ..lineTo(o.dx + s * nk, o.dy + s * top)
     ..close();
   c.drawPath(p, fillP(const Color(0xFFE4F3FB)));
   if (fill > 0) {
     c.save();
     c.clipPath(p);
-    final top = o.dy + s * .5 - s * 1.0 * fill.clamp(0, 1);
-    c.drawRect(Rect.fromLTRB(o.dx - s, top, o.dx + s, o.dy + s), fillP(water));
+    final y = o.dy + s * bot - s * (bot - neckEnd) * fill.clamp(0, 1);
+    c.drawRect(Rect.fromLTRB(o.dx - s, y, o.dx + s, o.dy + s), fillP(water));
     c.restore();
   }
-  c.drawPath(p, strokeP(const Color(0xFF3A6E8A), s * .025));
-  // highlights
-  c.drawLine(o + Offset(-s * .22, s * .02), o + Offset(-s * .22, s * .3), strokeP(Colors.white.withOpacity(.8), s * .03));
+  c.drawPath(p, strokeP(const Color(0xFF3A6E8A), s * .022));
+  // highlight + dotted neck line
+  c.drawLine(o + Offset(-s * .16, s * .0), o + Offset(-s * .16, s * .32), strokeP(Colors.white.withOpacity(.8), s * .025));
+  final dp = strokeP(const Color(0xFF3A6E8A), s * .008);
+  for (var y = top + .03; y < neckEnd; y += .03) {
+    c.drawLine(o + Offset(-s * .03, s * y), o + Offset(-s * .03, s * (y + .015)), dp);
+  }
   // cap
-  final cap = Rect.fromCenter(center: o + Offset(0, -s * .52), width: s * .3, height: s * .06);
+  final cap = Rect.fromCenter(center: o + Offset(0, s * (top - .02)), width: s * .22, height: s * .045);
   c.drawRect(cap, fillP(const Color(0xFFB7D9EE)));
-  c.drawRect(cap, strokeP(const Color(0xFF3A6E8A), s * .02));
+  c.drawRect(cap, strokeP(const Color(0xFF3A6E8A), s * .018));
   // question mark
   final tp = TextPainter(
-      text: TextSpan(text: '?', style: TextStyle(fontSize: s * .32, fontWeight: FontWeight.w900, color: C.coin, shadows: const [
-        Shadow(color: Color(0xFF3A3A1A), offset: Offset(1, 1), blurRadius: 0),
+      text: TextSpan(text: '?', style: TextStyle(fontSize: s * .3, fontWeight: FontWeight.w900, color: C.coin, shadows: const [
+        Shadow(color: Color(0xFF3A3A1A), offset: Offset(1.5, 1.5), blurRadius: 0),
       ])),
       textDirection: TextDirection.ltr)
     ..layout();
-  tp.paint(c, o + Offset(-tp.width / 2, s * .05 - tp.height / 2));
+  tp.paint(c, o + Offset(-tp.width / 2, s * .1 - tp.height / 2));
 }
 
 /// Pen / pencil drawn diagonally, tip at bottom-left of the box (size s).

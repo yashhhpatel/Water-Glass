@@ -81,6 +81,16 @@ class Sim {
   int _initialFill = 0;
 
   Sim(this.def) {
+    // Cheaper solver (Box2D's classic 8/3) and sleeping for settled bodies.
+    velocityIterations = 6;
+    positionIterations = 3;
+    world.setAllowSleep(true);
+    if (def.groundY > 0) {
+      // solid floor under the red line (Don't Spill)
+      final g = world.createBody(BodyDef(position: v(Offset(288, def.groundY + 30)), userData: Tag('static')));
+      g.createFixture(FixtureDef(PolygonShape()..setAsBoxXY(800 / kPx, 30 / kPx), friction: .9));
+      statics.add(g);
+    }
     for (final o in def.objs) {
       _addObj(o);
     }
@@ -232,8 +242,8 @@ class Sim {
   /// Advance physics with a fixed time step.
   void step(double dt) {
     if (!running) return;
-    _acc += math.min(dt, 1 / 20);
-    const h = 1 / 60;
+    _acc += math.min(dt, 1 / 12);
+    const h = 1 / 50;
     while (_acc >= h) {
       _acc -= h;
       time += h;

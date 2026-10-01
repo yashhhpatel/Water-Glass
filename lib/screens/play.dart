@@ -342,7 +342,7 @@ class _PlayScreenState extends State<PlayScreen> with SingleTickerProviderStateM
             onPointerMove: (e) => _move(e.localPosition),
             onPointerUp: (e) => _up(),
             onPointerCancel: (e) => _up(),
-            child: CustomPaint(painter: _WorldPainter(this)),
+            child: RepaintBoundary(child: CustomPaint(painter: _WorldPainter(this))),
           ),
         ),
         Positioned(left: 30, top: 48, child: _panel()),

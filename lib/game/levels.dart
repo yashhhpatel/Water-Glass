@@ -293,18 +293,19 @@ LevelDef bossLevel(int k) {
 /// Challenge levels (three lives).
 LevelDef challengeLevel(int i) {
   if (i == 0) {
+    // corners measured from the reference footage
     return LevelDef(
-      faucets: const [FaucetDef(390, 545)],
-      glasses: const [GlassDef(204, 700, angle: -40)],
+      faucets: const [FaucetDef(390, 546)],
+      glasses: const [GlassDef(206, 708, angle: 37)],
       objs: [
-        const Obj.poly([Offset(235, 173), Offset(451, 353), Offset(271, 567), Offset(56, 387)]),
-        const Obj.rect(40, 540, 300, 150, angle: 40),
-        const Obj.rect(40, 790, 330, 210, angle: 40),
-        _seg(const Offset(324, 682), const Offset(576, 380)),
-        _seg(const Offset(324, 682), const Offset(576, 682)),
+        const Obj.poly([Offset(237, 173), Offset(451, 352), Offset(271, 567), Offset(56, 387)]),
+        const Obj.poly([Offset(20, 428), Offset(236, 607), Offset(150, 712), Offset(-66, 533)]),
+        const Obj.poly([Offset(-89, 522), Offset(222, 778), Offset(72, 957), Offset(-239, 701)]),
+        _seg(const Offset(326, 680), const Offset(600, 346)),
+        _seg(const Offset(326, 680), const Offset(600, 680)),
       ],
       hint: const [
-        [Offset(360, 600), Offset(300, 650), Offset(236, 666)]
+        [Offset(398, 572), Offset(300, 630), Offset(250, 664)]
       ],
     );
   }
@@ -396,7 +397,7 @@ LevelDef dsLevel(int n) {
     top -= 18;
   }
   return LevelDef(
-    faucets: [FaucetDef(288, top - 110, amount: 46)],
+    faucets: [FaucetDef(288, top - 110, amount: 38)],
     glasses: [GlassDef(288, top - 38)],
     objs: objs,
     groundY: kGround,

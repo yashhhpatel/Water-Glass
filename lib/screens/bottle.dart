@@ -89,7 +89,7 @@ class _BottleScreenState extends State<BottleScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     final d = GameData.I;
     final pourT = _seg(.15, .55);
-    final fill = (from + (to - from) * Curves.easeOut.transform(_seg(.2, .6))) / 100;
+    final fill = (from + (to - from) * Curves.easeOut.transform(_seg(.48, .75))) / 100;
     final pct = (fill * 100).round();
     final coinT = _seg(0, .22);
     final water = waterColors[d.water];
@@ -127,18 +127,11 @@ class _BottleScreenState extends State<BottleScreen> with TickerProviderStateMix
           child: IgnorePointer(
             child: PaintBox(kW, kH, (c, s) {
               if (pourT > 0 && pourT < 1) {
-                final top = -20.0 + 400 * math.max(0, pourT - .7) / .3;
-                final bottom = math.min(500.0, -20 + pourT * 1600);
-                final p = Path();
-                for (var y = top; y <= bottom; y += 6) {
-                  final x = 288 + math.sin(y / 18 + pourT * 20) * 3;
-                  y == top ? p.moveTo(x - 8, y) : p.lineTo(x - 8, y);
-                }
-                for (var y = bottom; y >= top; y -= 6) {
-                  p.lineTo(288 + math.sin(y / 18 + pourT * 20) * 3 + 8, y);
-                }
-                p.close();
-                c.drawPath(p, fillP(water));
+                // a single elongated drop falls from the top into the bottle neck
+                final y = -120 + Curves.easeIn.transform(pourT) * 600;
+                final len = 70 + 40 * pourT;
+                final r = RRect.fromRectAndRadius(Rect.fromLTRB(280, y - len, 296, math.min(y, 500.0)), const Radius.circular(8));
+                if (r.bottom > r.top) c.drawRRect(r, fillP(water));
               }
               drawBottle(c, const Offset(288, 585), 200, fill, water);
             }),

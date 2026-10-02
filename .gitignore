@@ -44,3 +44,6 @@ app.*.map.json
 
 # solver scratch output
 tool/out/
+
+# built APKs
+apk/

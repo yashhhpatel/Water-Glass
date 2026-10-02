@@ -145,6 +145,7 @@ class RenderOpts {
   GlassSkin skin = glassSkins[0];
   Color water = C.water;
   Color ink = const Color(0xFF111111);
+  Color? ink2; // second colour of a gradient ink
   List<List<Offset>> strokes = const [];
   List<List<Offset>> hint = const [];
   double hintT = -1; // >=0 draws hint with animated pencil
@@ -166,17 +167,16 @@ void paintSim(Canvas c, Sim sim, RenderOpts o) {
     _paintObjAt(c, ob, px(b.position), b.angle);
   }
   // drawn lines
-  final lp = strokeP(o.ink, 4.2);
   for (final l in sim.lines) {
     c.save();
     final p = px(l.body.position);
     c.translate(p.dx, p.dy);
     c.rotate(l.body.angle);
-    _strokePath(c, l.local, lp);
+    _strokePath(c, l.local, _inkPaint(o, l.local));
     c.restore();
   }
   for (final s in o.strokes) {
-    _strokePath(c, s, lp);
+    _strokePath(c, s, _inkPaint(o, s));
   }
   // water
   paintWater(c, [for (final w in sim.water) px(w.position)], o.water);
@@ -194,6 +194,16 @@ void paintSim(Canvas c, Sim sim, RenderOpts o) {
     drawFaucet(c, Offset(f.x, f.y), dir: f.dir);
   }
   if (o.hintT >= 0) _paintHint(c, o.hint, o.hintT);
+}
+
+/// Solid ink, or a gradient running from the start to the end of the stroke.
+Paint _inkPaint(RenderOpts o, List<Offset> pts) {
+  final p = strokeP(o.ink, 4.2);
+  final c2 = o.ink2;
+  if (c2 != null && pts.length > 1 && (pts.last - pts.first).distance > 1) {
+    p.shader = ui.Gradient.linear(pts.first, pts.last, [o.ink, c2]);
+  }
+  return p;
 }
 
 void _strokePath(Canvas c, List<Offset> pts, Paint p) {

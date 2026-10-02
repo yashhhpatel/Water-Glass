@@ -51,6 +51,7 @@ class GameData extends ChangeNotifier {
         level = 26;
         coins = 6000;
         bottle = 96;
+        dsLevel = 21;
         levelsSinceOffer = 6;
         for (var i = 1; i <= 25; i++) {
           stars[i] = 3;

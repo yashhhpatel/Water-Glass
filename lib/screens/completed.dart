@@ -306,7 +306,7 @@ class _RewardCompletedState extends State<RewardCompleted> with SingleTickerProv
               c.save();
               c.translate(288, 384);
               c.scale(1.65);
-              drawGlass(c, glassSkins[GameData.I.glass], fill: 1, water: C.water, expr: Expr.happy);
+              drawGlass(c, glassSkins[GameData.I.glass], fill: 1, water: waterColors[GameData.I.water], expr: Expr.happy);
               c.restore();
               drawRibbon(c, const Rect.fromLTWH(134, 456, 308, 58), text: tr('COMPLETED!'), fontSize: 22);
               final tp = TextPainter(text: TextSpan(text: 'REWARD', style: txt(22, w: FontWeight.w500, sp: 4)), textDirection: TextDirection.ltr)..layout();
@@ -389,7 +389,7 @@ class _ChallengeCompletedState extends State<ChallengeCompletedScreen> with Sing
                 c.save();
                 c.translate(288, 600);
                 c.scale(2.3);
-                drawGlass(c, glassSkins[GameData.I.glass], fill: .78, water: C.water, expr: Expr.love);
+                drawGlass(c, glassSkins[GameData.I.glass], fill: .78, water: waterColors[GameData.I.water], expr: Expr.love);
                 c.restore();
                 const hs = [Offset(150, 490), Offset(426, 496), Offset(160, 660), Offset(420, 664)];
                 for (var i = 0; i < hs.length; i++) {

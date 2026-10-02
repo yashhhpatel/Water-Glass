@@ -334,6 +334,7 @@ class _PlayScreenState extends State<PlayScreen> with SingleTickerProviderStateM
       ..skin = glassSkins[d.glass]
       ..water = waterColors[d.water]
       ..ink = inks[d.ink].color
+      ..ink2 = inks[d.ink].color2
       ..hint = def.hint;
     return DesignScreen(
       child: Stack(children: [

@@ -37,6 +37,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   @override
   Widget build(BuildContext context) {
     return DesignScreen(
+      banner: true,
       child: Column(children: [
         BackCoinsBar(onBack: _back),
         const SizedBox(height: 40),

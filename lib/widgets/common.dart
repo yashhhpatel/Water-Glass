@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/ads.dart';
 import '../core/audio.dart';
 import '../core/data.dart';
 import '../core/theme.dart';
@@ -40,7 +41,8 @@ class _GridPainter extends CustomPainter {
 class DesignScreen extends StatelessWidget {
   final Widget child;
   final Color? tint;
-  const DesignScreen({super.key, required this.child, this.tint});
+  final bool banner; // adaptive ad banner under the canvas (menu screens)
+  const DesignScreen({super.key, required this.child, this.tint, this.banner = false});
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -49,12 +51,17 @@ class DesignScreen extends StatelessWidget {
         const GridBackground(),
         if (tint != null) Positioned.fill(child: ColoredBox(color: tint!)),
         SafeArea(
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: SizedBox(width: kW, height: kH, child: child),
+          child: Column(children: [
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: SizedBox(width: kW, height: kH, child: child),
+                ),
+              ),
             ),
-          ),
+            if (banner) const BannerSlot(),
+          ]),
         ),
       ]),
     );
@@ -269,53 +276,51 @@ Route<T> fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
       transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
     );
 
-/// Simple "rewarded video" stand-in: there is no ad network in this build, so
-/// rewarded buttons grant their reward after a short sponsor card.
+/// Plays a Google rewarded video (test ads). Returns true only when the
+/// player watched it to the end and earned the reward.
 Future<bool> watchRewardAd(BuildContext context) async {
-  final r = await showPopup<bool>(context, (ctx) => const _AdCard());
-  return r ?? false;
-}
-
-class _AdCard extends StatefulWidget {
-  const _AdCard();
-  @override
-  State<_AdCard> createState() => _AdCardState();
-}
-
-class _AdCardState extends State<_AdCard> with SingleTickerProviderStateMixin {
-  late final AnimationController _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..forward();
-  @override
-  void initState() {
-    super.initState();
-    _a.addStatusListener((s) {
-      if (s == AnimationStatus.completed && mounted) Navigator.of(context).pop(true);
-    });
+  final nav = Navigator.of(context);
+  var loading = true;
+  showPopup(context, (ctx) => const _LoadingAdCard());
+  void closeLoading() {
+    if (loading) {
+      loading = false;
+      nav.pop();
+    }
   }
 
-  @override
-  void dispose() {
-    _a.dispose();
-    super.dispose();
+  final result = await Ads.showRewarded(beforeShow: closeLoading);
+  closeLoading();
+  if (result == null && context.mounted) {
+    await showPopup(
+      context,
+      dismissible: true,
+      (ctx) => PopupCard(
+        width: 440,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('No video right now', style: txt(28, w: FontWeight.w700)),
+          const SizedBox(height: 14),
+          Text('Please check your connection\nand try again in a moment.', textAlign: TextAlign.center, style: txt(22, w: FontWeight.w500, h: 1.4)),
+          const SizedBox(height: 20),
+          Pill('Ok', w: 136, h: 54, fs: 22, onTap: () => Navigator.of(ctx).pop()),
+        ]),
+      ),
+    );
   }
+  return result ?? false;
+}
 
+class _LoadingAdCard extends StatelessWidget {
+  const _LoadingAdCard();
   @override
   Widget build(BuildContext context) => PopupCard(
-        width: 420,
+        width: 400,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           PaintBox(90, 80, (c, s) => drawClapper(c, const Rect.fromLTWH(10, 14, 70, 60))),
           const SizedBox(height: 16),
-          Text('REWARD', style: txt(26, w: FontWeight.w700, sp: 5)),
+          Text('LOADING VIDEO...', style: txt(24, w: FontWeight.w700, sp: 3)),
           const SizedBox(height: 18),
-          AnimatedBuilder(
-            animation: _a,
-            builder: (_, __) => Container(
-              width: 300,
-              height: 22,
-              decoration: BoxDecoration(border: Border.all(color: const Color(0xFF222222), width: 2), color: Colors.white),
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(widthFactor: _a.value, child: Container(color: C.green)),
-            ),
-          ),
+          const SizedBox(width: 44, height: 44, child: CircularProgressIndicator(strokeWidth: 4, color: C.greenDark)),
         ]),
       );
 }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../core/ads.dart';
 import '../core/catalog.dart';
+import '../core/data.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import '../widgets/painters.dart';
 import 'home.dart';
+import 'onboarding.dart';
 
 /// Logo + "Loading..." bar, then the home screen.
 class SplashScreen extends StatefulWidget {
@@ -20,10 +23,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _a.addStatusListener((s) {
-      if (s == AnimationStatus.completed && mounted) {
-        Navigator.of(context).pushReplacement(fadeRoute(const HomeScreen()));
-      }
+      if (s == AnimationStatus.completed && mounted) _next();
     });
+  }
+
+  Future<void> _next() async {
+    if (!GameData.I.onboarded) {
+      // first launch: onboarding before anything else (no ads)
+      Navigator.of(context).pushReplacement(fadeRoute(const OnboardingScreen()));
+      return;
+    }
+    await Ads.showAppOpenOnLaunch();
+    if (mounted) Navigator.of(context).pushReplacement(fadeRoute(const HomeScreen()));
   }
 
   @override
@@ -57,6 +68,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: FractionallySizedBox(widthFactor: Curves.easeInOut.transform(_a.value), child: Container(color: const Color(0xFFADDC45))),
           ),
         ),
+        if (GameData.I.onboarded && !GameData.I.adsRemoved) ...[
+          const SizedBox(height: 60),
+          Text("Ad may show while we're loading...", style: txt(22, w: FontWeight.w500)),
+        ],
       ]),
     );
   }

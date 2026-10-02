@@ -33,6 +33,13 @@ class GameData extends ChangeNotifier {
   Set<int> bossesDone = {};
   int lastSpin = 0; // epoch ms of last daily wheel spin
   int levelsSinceOffer = 0;
+  bool onboarded = false;
+  bool noAdsLifetime = false;
+  bool noAdsMonthly = false;
+  int noAdsTest = 0; // debug-only simulated purchase: 1 monthly, 2 lifetime
+  int levelsSinceAd = 0;
+
+  bool get adsRemoved => noAdsLifetime || noAdsMonthly;
 
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
@@ -74,6 +81,11 @@ class GameData extends ChangeNotifier {
       bossesDone = Set<int>.from(m['bossesDone'] ?? []);
       lastSpin = m['lastSpin'] ?? 0;
       levelsSinceOffer = m['levelsSinceOffer'] ?? 0;
+      onboarded = m['onboarded'] ?? false;
+      noAdsLifetime = m['noAdsLifetime'] ?? false;
+      noAdsMonthly = m['noAdsMonthly'] ?? false;
+      noAdsTest = m['noAdsTest'] ?? 0;
+      levelsSinceAd = m['levelsSinceAd'] ?? 0;
     } catch (_) {}
   }
 
@@ -103,6 +115,11 @@ class GameData extends ChangeNotifier {
           'bossesDone': bossesDone.toList(),
           'lastSpin': lastSpin,
           'levelsSinceOffer': levelsSinceOffer,
+          'onboarded': onboarded,
+          'noAdsLifetime': noAdsLifetime,
+          'noAdsMonthly': noAdsMonthly,
+          'noAdsTest': noAdsTest,
+          'levelsSinceAd': levelsSinceAd,
         }));
   }
 

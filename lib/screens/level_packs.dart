@@ -41,6 +41,7 @@ class LevelPacksScreen extends StatelessWidget {
     final d = GameData.I;
     final packs = (kClassicCount / 10).ceil();
     return DesignScreen(
+      banner: true,
       child: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 52, 12, 0),
@@ -70,6 +71,8 @@ class LevelPacksScreen extends StatelessWidget {
                     Text('${d.starsInPack(p)}/30', style: txt(40, w: FontWeight.w500)),
                   ]),
                   Text(tr('COLLECTED'), style: txt(22, w: FontWeight.w500, sp: 3)),
+                  const SizedBox(height: 6),
+                  TierChip(p * 10 + 1),
                 ]),
               );
             },
@@ -153,6 +156,7 @@ class PackLevelsScreen extends StatelessWidget {
     final first = pack * 10 + 1;
     final done = [for (var i = first; i < first + 10; i++) if ((d.stars[i] ?? 0) > 0) i].length;
     return DesignScreen(
+      banner: true,
       child: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 36, 12, 0),
@@ -163,6 +167,7 @@ class PackLevelsScreen extends StatelessWidget {
           ]),
         ),
         Text('LEVEL $first-${first + 9}', style: txt(36, w: FontWeight.w500, sp: 7)),
+        TierChip(first),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           PaintBox(30, 30, (c, s) => drawStar(c, const Offset(15, 15), 13)),
           Text('${d.starsInPack(pack)}/30', style: txt(26, w: FontWeight.w500)),
@@ -223,6 +228,27 @@ class PackLevelsScreen extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+const _tierColors = [Color(0xFF7CC242), Color(0xFF3B8FE0), Color(0xFFF7931E), Color(0xFFE5402B)];
+
+/// Small coloured label: EASY / MEDIUM / HARD / VERY HARD.
+class TierChip extends StatelessWidget {
+  final int level;
+  const TierChip(this.level, {super.key});
+  @override
+  Widget build(BuildContext context) {
+    final t = tierOf(level);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+      decoration: BoxDecoration(
+        color: _tierColors[t],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF222222), width: 1.6),
+      ),
+      child: Text(kTierNames[t], style: txt(16, w: FontWeight.w800, c: Colors.white, sp: 2)),
     );
   }
 }

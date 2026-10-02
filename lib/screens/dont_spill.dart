@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../core/ads.dart';
 import '../core/audio.dart';
 import '../core/catalog.dart';
 import '../core/data.dart';
@@ -122,6 +123,7 @@ class _DontSpillState extends State<DontSpillScreen> with SingleTickerProviderSt
   }
 
   void _win() {
+    Ads.levelCompleted();
     _ended = true;
     _countdown = -1;
     Sfx.play('win');

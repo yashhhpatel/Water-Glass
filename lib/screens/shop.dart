@@ -35,6 +35,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     return DesignScreen(
+      banner: true,
       child: Column(children: [
         BackCoinsBar(onBack: () => Navigator.of(context).pop()),
         const SizedBox(height: 50),

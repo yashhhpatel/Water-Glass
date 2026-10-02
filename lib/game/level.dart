@@ -72,4 +72,7 @@ class LevelDef {
     this.tutorial = false,
     this.groundY = 0,
   });
+
+  LevelDef withHint(List<List<Offset>> h) =>
+      LevelDef(faucets: faucets, glasses: glasses, objs: objs, ink: ink, hint: h, tutorial: tutorial, groundY: groundY);
 }

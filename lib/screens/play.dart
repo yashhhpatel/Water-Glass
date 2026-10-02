@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../core/ads.dart';
 import '../core/audio.dart';
 import '../core/catalog.dart';
 import '../core/data.dart';
@@ -199,6 +200,7 @@ class _PlayScreenState extends State<PlayScreen> with SingleTickerProviderStateM
 
   Future<void> _afterWin() async {
     if (!mounted) return;
+    Ads.levelCompleted();
     Sfx.pour(false);
     final d = GameData.I;
     switch (widget.mode) {

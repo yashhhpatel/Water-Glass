@@ -1,15 +1,17 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'hints.g.dart';
 import 'level.dart';
 
-const int kClassicCount = 60;
+const int kClassicCount = 1000;
 const int kChallengeCount = 12;
 const int kDsCount = 20;
 
-/// Boss levels appear after classic levels 5, 15, 25, ...
-bool hasBossAfter(int level) => level % 10 == 5 && level <= kClassicCount;
-int bossIndexAfter(int level) => (level - 5) ~/ 10;
+/// Boss levels appear after classic levels 5, 25, 45, ... (50 bosses).
+const int kBossCount = 50;
+bool hasBossAfter(int level) => level % 20 == 5 && level <= kClassicCount;
+int bossIndexAfter(int level) => (level - 5) ~/ 20;
 
 Obj _seg(Offset a, Offset b, {double t = 7}) {
   final d = b - a;
@@ -18,7 +20,18 @@ Obj _seg(Offset a, Offset b, {double t = 7}) {
 
 /// Classic levels 1-11 are recreated from the reference footage; the rest are
 /// built from the same building blocks.
-LevelDef classicLevel(int n) {
+/// Public level getters apply the solver output (tool/solve_levels_test.dart):
+/// a layout variant for generated levels and a verified hint path.
+LevelDef classicLevel(int n) => _solved('c$n', classicLevelRaw(n, kVariants['c$n'] ?? 0));
+LevelDef bossLevel(int k) => _solved('b$k', bossLevelRaw(k, kVariants['b$k'] ?? 0));
+LevelDef challengeLevel(int i) => _solved('x$i', challengeLevelRaw(i, kVariants['x$i'] ?? 0));
+
+LevelDef _solved(String key, LevelDef d) {
+  final h = kSolvedHints[key];
+  return h == null ? d : d.withHint(h);
+}
+
+LevelDef classicLevelRaw(int n, [int variant = 0]) {
   switch (n) {
     case 1:
       return const LevelDef(
@@ -146,7 +159,7 @@ LevelDef classicLevel(int n) {
         ],
       );
   }
-  return _generated(n);
+  return _generated(n, variant);
 }
 
 /// Bag-shaped hint around faucet and glass (works for most layouts).
@@ -162,111 +175,208 @@ List<List<Offset>> _bagHint(double fx, double fy, double gx, double gy) => [
       ]
     ];
 
-LevelDef _generated(int n) {
-  final r = math.Random(n * 7919 + 13);
+/// Difficulty 0..1: 0 at level 12, 1 at level 1000 (levels 1-11 come from the
+/// reference footage). The curve is gentle at first and steadier later.
+double difficultyOf(int n) => n <= 11 ? 0 : math.pow((n - 11) / (kClassicCount - 11), 0.9).toDouble();
+
+const List<String> kTierNames = ['EASY', 'MEDIUM', 'HARD', 'VERY HARD'];
+
+/// Easy 1-150, Medium 151-450, Hard 451-800, Very Hard 801-1000.
+int tierOf(int n) => n <= 150 ? 0 : (n <= 450 ? 1 : (n <= 800 ? 2 : 3));
+
+Rect _bounds(Obj o) {
+  switch (o.kind) {
+    case ObjKind.poly:
+      var l = double.infinity, t = double.infinity, r = -double.infinity, b = -double.infinity;
+      for (final p in o.pts) {
+        l = math.min(l, p.dx);
+        t = math.min(t, p.dy);
+        r = math.max(r, p.dx);
+        b = math.max(b, p.dy);
+      }
+      return Rect.fromLTRB(l, t, r, b);
+    case ObjKind.circle:
+      return Rect.fromCircle(center: Offset(o.x, o.y), radius: o.r);
+    case ObjKind.cross:
+      return Rect.fromCenter(center: Offset(o.x, o.y), width: o.w, height: o.w);
+    case ObjKind.rect:
+      final a = o.angle * math.pi / 180;
+      final hw = (o.w / 2 * math.cos(a)).abs() + (o.h / 2 * math.sin(a)).abs();
+      final hh = (o.w / 2 * math.sin(a)).abs() + (o.h / 2 * math.cos(a)).abs();
+      return Rect.fromCenter(center: Offset(o.x, o.y), width: hw * 2, height: hh * 2);
+  }
+}
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+/// Generated classic level [n]. [variant] re-rolls the layout (used by the
+/// solver when a roll is unsolvable or trivial); later variants ease off a
+/// little so every level ends up solvable.
+LevelDef _generated(int n, [int variant = 0, int salt = 0]) {
+  final r = math.Random(n * 7919 + 13 + variant * 104723 + salt * 15485863);
   double rr(double a, double b) => a + r.nextDouble() * (b - a);
-  final t = (n * 5 + r.nextInt(3)) % 12;
-  final ink = math.max(820.0, 1150 - n * 5.0);
-  var gx = rr(190, 386);
-  var gy = rr(600, 700);
-  var fx = gx;
-  var fy = gy - rr(100, 150);
+  // variants 0-11 ease a little more each roll; the extra retry rolls (12+)
+  // keep a moderate ease so a level never drops out of its tier
+  final ease = variant <= 11 ? 1 - 0.06 * math.max(0, variant - 3) : 0.55;
+  final d = (difficultyOf(n) * ease).clamp(0.0, 1.0);
   final objs = <Obj>[];
-  final faucets = <FaucetDef>[];
-  final glasses = <GlassDef>[];
-  switch (t) {
-    case 0: // gap between two platforms
-      final py = gy + 70 + rr(0, 30), gap = rr(86, 120);
-      objs.add(Obj.rect(gx - gap / 2 - 75, py, 150, 16));
-      objs.add(Obj.rect(gx + gap / 2 + 75, py, 150, 16));
-      if (r.nextBool()) objs.add(Obj.poly([Offset(80, py + 220), Offset(240, py + 120), Offset(576, py + 120), Offset(576, py + 220)]));
+  final taken = <Rect>[];
+  bool place(Obj o, {bool force = false}) {
+    final b = _bounds(o);
+    if (!force && taken.any((t) => t.overlaps(b.inflate(6)))) return false;
+    objs.add(o);
+    taken.add(b);
+    return true;
+  }
+
+  T pick<T>(List<T> items, List<double> easyW, List<double> hardW) {
+    final w = [for (var i = 0; i < items.length; i++) math.max(0.0, _lerp(easyW[i], hardW[i], d))];
+    var x = r.nextDouble() * w.fold<double>(0, (a, b) => a + b);
+    for (var i = 0; i < items.length; i++) {
+      x -= w[i];
+      if (x <= 0) return items[i];
+    }
+    return items.last;
+  }
+
+  // ---------------------------------------------------------------- two glasses
+  if (r.nextDouble() < _lerp(0.04, 0.24, d)) {
+    final cx = rr(250, 326), sep = rr(150, _lerp(185, 250, d));
+    final gy1 = rr(660, 760), gy2 = gy1 + (d > .35 ? rr(-70, 70) * d : 0);
+    final gl = [GlassDef(cx - sep / 2, gy1), GlassDef(cx + sep / 2, gy2)];
+    for (final g in gl) {
+      final inner = g.x < cx ? 1.0 : -1.0;
+      place(Obj.rect(g.x, g.y + 44, 100, 10), force: true);
+      place(Obj.rect(g.x + inner * 50, g.y + 4, 8, 90), force: true);
+    }
+    final fx = cx + rr(-1, 1) * _lerp(4, 70, d);
+    final fy = math.max(440.0, math.min(gy1, gy2) - rr(130, _lerp(170, 270, d)));
+    if (d > .3 && r.nextDouble() < d) {
+      // a bar under the faucet that throws water to one side
+      final s = r.nextBool() ? 1.0 : -1.0;
+      place(_seg(Offset(fx - s * 34, fy + 70), Offset(fx + s * 40, fy + 92)), force: true);
+    }
+    return LevelDef(
+      faucets: [FaucetDef(fx, fy, amount: 140)],
+      glasses: gl,
+      objs: objs,
+      ink: _lerp(1250, 850, d),
+    );
+  }
+
+  // ---------------------------------------------------------------- one glass
+  final gx = rr(140, 436);
+  final gy = rr(_lerp(600, 640, d), _lerp(700, 800, d));
+  final s = r.nextBool() ? 1.0 : -1.0; // faucet -> glass direction
+  final off = rr(0, _lerp(30, 210, d));
+  final sidePipe = off > 70 && r.nextDouble() < _lerp(.04, .22, d);
+  var fx = gx - s * off;
+  fx = sidePipe ? (s > 0 ? fx.clamp(160.0, 470.0) : fx.clamp(106.0, 416.0)) : fx.clamp(80.0, 496.0);
+  final fy = (gy - rr(_lerp(110, 150, d), _lerp(150, 320, d))).clamp(440.0, gy - 100);
+  final dir = sidePipe ? (s > 0 ? 2 : 1) : 0;
+  taken.add(Rect.fromCenter(center: Offset(gx, gy), width: 84, height: 92));
+  taken.add(dir == 0
+      ? Rect.fromLTWH(fx - 26, fy - 32, 52, 48)
+      : Rect.fromLTRB(math.min(fx, fx - s * 150), fy - 16, math.max(fx, fx - s * 150), fy + 16));
+
+  // how the glass is held up
+  final support = pick(
+    ['platform', 'gap', 'slope', 'pegs', 'balls', 'float', 'tilted', 'diamonds'],
+    [3, 3, 2, 2, 1, 1, .5, .5],
+    [.3, 2, 2, 1, 2, 2, 2.2, 2],
+  );
+  switch (support) {
+    case 'platform':
+      place(Obj.rect(gx + rr(-10, 10), gy + 44, rr(90, 120), 10), force: true);
       break;
-    case 1: // tilted slope under the glass
-      final a = rr(12, 26) * (r.nextBool() ? 1 : -1) * math.pi / 180;
-      final c = Offset(gx + rr(-20, 20), gy + 90);
-      objs.add(_seg(c - Offset(math.cos(a), math.sin(a)) * 140, c + Offset(math.cos(a), math.sin(a)) * 140));
-      fx = gx + rr(-40, 40);
+    case 'gap':
+      final py = gy + rr(60, _lerp(80, 160, d)), gap = rr(_lerp(80, 96, d), _lerp(100, 140, d));
+      place(Obj.rect(gx - gap / 2 - 70, py, 140, 14), force: true);
+      place(Obj.rect(gx + gap / 2 + 70, py, 140, 14), force: true);
       break;
-    case 2: // pegs around the glass
+    case 'slope':
+      final a = rr(_lerp(8, 18, d), _lerp(18, 34, d)) * (r.nextBool() ? 1 : -1) * math.pi / 180;
+      final c = Offset(gx + rr(-25, 25), gy + rr(70, 110));
+      place(_seg(c - Offset(math.cos(a), math.sin(a)) * 130, c + Offset(math.cos(a), math.sin(a)) * 130), force: true);
+      break;
+    case 'pegs':
       for (final dx in [-46.0, 46.0]) {
         for (final dy in [28.0, 90.0]) {
-          objs.add(Obj.rect(gx + dx, gy + dy, 20, 20));
+          place(Obj.rect(gx + dx, gy + dy, 20, 20), force: true);
         }
       }
-      if (n % 2 == 0) objs.add(Obj.rect(gx, gy + 150, 20, 20));
       break;
-    case 3: // two blocks with a gap
-      final by = gy + rr(100, 140), gap = rr(80, 100);
-      objs.add(Obj.rect(gx - gap / 2 - rr(30, 60), by, rr(60, 120), 40));
-      objs.add(Obj.rect(gx + gap / 2 + rr(25, 40), by, rr(44, 80), 40));
+    case 'balls':
+      final cy = gy + rr(85, 120);
+      place(Obj.circle(gx - 40, cy, 14), force: true);
+      place(Obj.circle(gx + rr(-6, 6), cy + 4, 14), force: true);
+      if (r.nextBool()) place(Obj.circle(gx + 42, cy - 6, 14), force: true);
       break;
-    case 4: // faucet off to the side, glass on a ledge
-      fx = gx + (gx < 288 ? 1 : -1) * rr(110, 170);
-      fx = fx.clamp(110, 466);
-      objs.add(Obj.rect(gx, gy + 46, 110, 12));
-      objs.add(Obj.rect(fx + (fx < gx ? -1 : 1) * 40, fy + 150, 60, 12, angle: (fx < gx ? 1 : -1) * 15));
+    case 'tilted':
+      place(Obj.rect(gx, gy + 46, 84, 10, angle: (r.nextBool() ? 1 : -1) * rr(_lerp(10, 16, d), _lerp(16, 30, d))), force: true);
       break;
-    case 5: // balls under the glass
-      final cy = gy + rr(90, 120);
-      objs.add(Obj.circle(gx - 40, cy, 15));
-      objs.add(Obj.circle(gx + rr(-5, 5), cy + 4, 15));
-      if (r.nextBool()) objs.add(Obj.circle(gx + 42, cy - 6, 15));
+    case 'diamonds':
+      final dy = rr(85, 110);
+      place(Obj.rect(gx - 26, gy + dy, 28, 28, angle: 45), force: true);
+      place(Obj.rect(gx + 26, gy + dy, 28, 28, angle: 45), force: true);
       break;
-    case 6: // side pipe + diamonds
-      final left = r.nextBool();
-      fx = left ? gx - rr(70, 100) : gx + rr(70, 100);
-      fx = fx.clamp(60, 516);
-      faucets.add(FaucetDef(fx, fy, dir: left ? 2 : 1, amount: 75));
-      objs.add(Obj.rect(gx - 26, gy + 90, 28, 28, angle: 45));
-      objs.add(Obj.rect(gx + 26, gy + 90, 28, 28, angle: 45));
+    default: // float: nothing under the glass
       break;
-    case 7: // two glasses on shelves
-      final sep = rr(150, 190);
-      gx = 288 + rr(-20, 20);
-      final g1 = gx - sep / 2, g2 = gx + sep / 2;
-      glasses
-        ..add(GlassDef(g1, gy))
-        ..add(GlassDef(g2, gy));
-      for (final g in [g1, g2]) {
-        final s = g < gx ? 1.0 : -1.0;
-        objs.add(Obj.rect(g, gy + 44, 100, 10));
-        objs.add(Obj.rect(g + s * 50, gy + 4, 8, 90));
-      }
-      fx = gx;
-      faucets.add(FaucetDef(fx, fy, amount: 140));
-      break;
-    case 8: // deflector under the faucet
-      objs.add(Obj.rect(fx + rr(-6, 6), fy + 44, 50, 6, angle: rr(-10, 10)));
-      objs.add(Obj.rect(gx, gy + 42, 300, 6));
-      gy += 4;
-      break;
-    case 9: // glass floating, single obstacle
-      objs.add(Obj.rect(gx + (r.nextBool() ? 60 : -60), gy - rr(0, 30), 28, 28));
-      break;
-    case 10: // stairs
-      final s = r.nextBool() ? 1.0 : -1.0;
-      fx = gx - s * rr(90, 120);
-      objs.add(Obj.rect(fx + s * 20, fy + 110, 46, 46));
-      objs.add(Obj.rect(fx + s * 66, fy + 156, 46, 46));
-      objs.add(Obj.rect(gx, gy + 44, 70, 8));
-      break;
-    default: // V walls
-      objs.add(_seg(Offset(gx - 120, gy - 80), Offset(gx - 60, gy + 60)));
-      objs.add(_seg(Offset(gx + 120, gy - 80), Offset(gx + 60, gy + 60)));
-      fx = gx + (r.nextBool() ? 1 : -1) * rr(40, 70);
-      objs.add(Obj.rect(gx, gy + 110, 140, 8));
   }
-  if (glasses.isEmpty) glasses.add(GlassDef(gx, gy));
-  if (faucets.isEmpty) faucets.add(FaucetDef(fx, math.max(440, fy)));
-  final f = faucets.first;
-  return LevelDef(faucets: faucets, glasses: glasses, objs: objs, ink: ink, hint: _bagHint(f.x, f.y, glasses.first.x, glasses.first.y));
+
+  // things in the water's way (more of them as levels get harder)
+  final hurdles = math.min(4, (_lerp(0, 3.4, d) + r.nextDouble() * .8).floor());
+  for (var i = 0; i < hurdles; i++) {
+    final kind = pick(
+      ['deflector', 'roof', 'wall', 'block', 'spinner'],
+      [1, 1, .6, 1, 0],
+      [1.2, 1, 1.2, .8, 1.4],
+    );
+    switch (kind) {
+      case 'deflector':
+        if (dir != 0) break;
+        final h = rr(60, 120);
+        place(_seg(Offset(fx + s * 30, fy + h), Offset(fx - s * 45, fy + h + rr(20, 34))), force: true);
+        break;
+      case 'roof':
+        place(Obj.rect(gx + rr(-1, 1) * rr(10, 30), gy - rr(76, 110), rr(60, 90), 8));
+        break;
+      case 'wall':
+        if (off < 60) break;
+        final wx = gx - s * rr(55, 75);
+        place(_seg(Offset(wx, gy - rr(20, 60)), Offset(wx, gy + 50)));
+        break;
+      case 'block':
+        final sz = rr(30, 50);
+        place(Obj.rect((fx + gx) / 2 + rr(-30, 30), (fy + gy) / 2 + rr(-30, 30), sz, sz, angle: rr(0, 45)));
+        break;
+      default:
+        final spin = (r.nextBool() ? 1 : -1) * rr(1.6, 2.0 + d);
+        if (r.nextBool()) {
+          place(Obj.cross(gx + s * rr(80, 110), gy - rr(10, 60), 50, spin: spin));
+        } else {
+          place(Obj.cross(fx - s * rr(60, 80), fy + rr(80, 120), 46, spin: spin));
+        }
+    }
+  }
+  // scenery blocks high up on harder levels
+  if (d > .35 && r.nextDouble() < d) {
+    place(Obj.rect(rr(80, 496), rr(300, 380), rr(70, 130), rr(50, 90), angle: rr(10, 70)));
+  }
+  return LevelDef(
+    faucets: [FaucetDef(fx, fy, dir: dir, amount: (72 - 12 * d).round())],
+    glasses: [GlassDef(gx, gy)],
+    objs: objs,
+    ink: _lerp(1150, 700, d),
+    hint: _bagHint(fx, fy, gx, gy),
+  );
 }
 
 /// Boss levels (two lives, spinning blades).
-LevelDef bossLevel(int k) {
+LevelDef bossLevelRaw(int k, [int variant = 0]) {
   if (k == 0) {
     return const LevelDef(
-      faucets: [FaucetDef(189, 560)],
+      faucets: [FaucetDef(189, 560, amount: 100)],
       glasses: [GlassDef(300, 761)],
       objs: [
         Obj.rect(166, 690, 46, 46),
@@ -276,22 +386,26 @@ LevelDef bossLevel(int k) {
         Obj.rect(300, 803, 64, 6),
       ],
       hint: [
-        [Offset(160, 548), Offset(176, 520), Offset(214, 534), Offset(250, 600), Offset(250, 640)]
+        [Offset(150, 612), Offset(250, 616), Offset(300, 640)]
       ],
     );
   }
-  final base = _generated(100 + k * 3);
+  // a boss follows the difficulty of the level it comes after, plus blades
+  final level = 5 + 20 * k;
+  final base = _generated(level, variant, 31); // own seed, same difficulty as its level
   final g = base.glasses.first;
+  final spin = 1.8 + difficultyOf(level) * .8;
   return LevelDef(
-    faucets: base.faucets,
+    faucets: [for (final f in base.faucets) FaucetDef(f.x, f.y, dir: f.dir, amount: base.glasses.length > 1 ? 160 : 100)],
     glasses: base.glasses,
-    objs: [...base.objs, Obj.cross(g.x - 40, g.y - 70, 54, spin: 2.0), Obj.cross(g.x + 40, g.y - 70, 54, spin: -2.0)],
+    objs: [...base.objs, Obj.cross(g.x - 62, g.y - 66, 48, spin: spin), Obj.cross(g.x + 62, g.y - 66, 48, spin: -spin)],
+    ink: base.ink,
     hint: base.hint,
   );
 }
 
 /// Challenge levels (three lives).
-LevelDef challengeLevel(int i) {
+LevelDef challengeLevelRaw(int i, [int variant = 0]) {
   if (i == 0) {
     // corners measured from the reference footage
     return LevelDef(
@@ -309,20 +423,22 @@ LevelDef challengeLevel(int i) {
       ],
     );
   }
-  final r = math.Random(i * 104729);
+  final r = math.Random(i * 104729 + variant * 7907);
   double rr(double a, double b) => a + r.nextDouble() * (b - a);
-  final gx = rr(200, 380), gy = rr(640, 760);
-  final fx = gx + (r.nextBool() ? 1 : -1) * rr(80, 160);
-  final fy = rr(430, 520);
+  // Faucet off to one side of the glass; spinning blades sit beside the
+  // water's path (not on it) so a ramp or a hooked chute can get past them.
+  final fx = rr(150, 426), fy = rr(430, 500);
+  final s = fx < 288 ? 1.0 : -1.0; // direction from faucet towards the glass
+  final gx = (fx + s * rr(90, 170)).clamp(110.0, 466.0), gy = rr(650, 750);
   final objs = <Obj>[
-    Obj.rect(rr(100, 476), rr(260, 360), rr(140, 220), rr(120, 180), angle: rr(20, 70)),
-    Obj.rect(gx, gy + 46, 90, 10, angle: rr(-12, 12)),
-    Obj.cross((fx + gx) / 2, (fy + gy) / 2, 54, spin: i.isEven ? 2.0 : -2.0),
+    Obj.rect(rr(120, 456), rr(200, 250), rr(120, 160), rr(100, 140), angle: rr(20, 70)),
+    Obj.rect(gx, gy + 46, 90, 10, angle: rr(-10, 10)),
+    Obj.cross(gx + s * 100, gy - 30, 54, spin: i.isEven ? 2.0 : -2.0),
   ];
-  if (i > 4) objs.add(Obj.cross(gx + 70, gy - 40, 46, spin: -2.4));
-  if (i > 7) objs.add(_seg(Offset(fx - 60, fy + 120), Offset(fx + 60, fy + 160)));
+  if (i > 4) objs.add(Obj.cross(fx - s * 80, fy + 110, 46, spin: -2.4));
+  if (i > 7) objs.add(_seg(Offset(fx + s * 20, fy + 120), Offset(fx - s * 90, fy + 160)));
   return LevelDef(
-    faucets: [FaucetDef(fx.clamp(80, 496), fy)],
+    faucets: [FaucetDef(fx, fy)],
     glasses: [GlassDef(gx, gy)],
     objs: objs,
     ink: 1000,

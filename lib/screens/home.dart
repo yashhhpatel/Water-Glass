@@ -14,6 +14,7 @@ import 'dialogs.dart';
 import 'dont_spill.dart';
 import 'level_packs.dart';
 import 'play.dart';
+import 'remove_ads.dart';
 import 'settings.dart';
 import 'shop.dart';
 
@@ -74,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final d = GameData.I;
     final water = waterColors[d.water];
     return DesignScreen(
+      banner: true,
       child: Stack(children: [
         Positioned(left: 10, top: 56, child: Tap(onTap: () => _open(const SettingsScreen()), child: const Icon(Icons.settings_outlined, size: 72, color: Color(0xFF222222)))),
         Positioned(left: 12, top: 144, child: Tap(onTap: () => _open(const LevelPacksScreen()), child: const PaintBox(68, 68, _gridIcon))),
@@ -87,7 +89,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
         ),
-        Positioned(left: 474, top: 318, child: Tap(onTap: () => showMessage(context, 'No Ads', 'Ads are already disabled\nin this version.'), child: PaintBox(76, 76, (c, s) => drawNoAds(c, const Offset(38, 38), 35)))),
+        if (!d.adsRemoved)
+          Positioned(left: 474, top: 318, child: Tap(onTap: () => _open(const RemoveAdsScreen()), child: PaintBox(76, 76, (c, s) => drawNoAds(c, const Offset(38, 38), 35)))),
         Positioned(left: 474, top: 408, child: Tap(onTap: _wheel, child: PaintBox(76, 80, (c, s) => drawWheel(c, const Offset(38, 44), 34)))),
         Positioned(
             left: 446,
@@ -198,21 +201,18 @@ void _paintTitle(Canvas c, double t, Color water) {
   w.paint(c, Offset(288 - w.width / 2, 132));
   final g = tp('GLASS', C.blue);
   g.paint(c, Offset(288 - g.width / 2, 214));
-  // faucet pipe dropping through the middle "A"
   const fx = 288.0;
-  c.drawRect(const Rect.fromLTWH(fx - 11, 196, 22, 108), fillP(C.faucet));
-  c.drawRect(const Rect.fromLTWH(fx - 11, 196, 22, 108), strokeP(const Color(0xFF555555), 1.4));
-  c.drawRect(const Rect.fromLTWH(fx - 16, 304, 32, 12), fillP(const Color(0xFFB7BEC2)));
-  c.drawRect(const Rect.fromLTWH(fx - 16, 304, 32, 12), strokeP(const Color(0xFF555555), 1.4));
+  // faucet under the title (kept clear of the letters), pouring into the glass
+  drawFaucet(c, const Offset(fx, 338));
   // pour stream for the first 40% of the cycle
   final pour = t < .4;
   if (pour) {
     final p = Path();
-    for (var y = 318.0; y <= 470; y += 6) {
+    for (var y = 352.0; y <= 470; y += 6) {
       final x = fx + math.sin(y / 14 + t * 60) * 2.5;
-      y == 318 ? p.moveTo(x - 6, y) : p.lineTo(x - 6, y);
+      y == 352 ? p.moveTo(x - 6, y) : p.lineTo(x - 6, y);
     }
-    for (var y = 470.0; y >= 318; y -= 6) {
+    for (var y = 470.0; y >= 352; y -= 6) {
       p.lineTo(fx + math.sin(y / 14 + t * 60) * 2.5 + 6, y);
     }
     p.close();

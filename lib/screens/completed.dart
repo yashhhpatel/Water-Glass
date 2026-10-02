@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../core/ads.dart';
 import '../core/audio.dart';
 import '../core/catalog.dart';
 import '../core/data.dart';
@@ -63,6 +64,8 @@ class _CompletedScreenState extends State<CompletedScreen> with SingleTickerProv
   double _seg(double a, double b) => ((_a.value - a) / (b - a)).clamp(0, 1);
 
   void _next() async {
+    await Ads.maybeShowInterstitial();
+    if (!mounted) return;
     final n = widget.level;
     final d = GameData.I;
     if (hasBossAfter(n) && !d.bossesDone.contains(bossIndexAfter(n))) {
@@ -325,7 +328,10 @@ class _RewardCompletedState extends State<RewardCompleted> with SingleTickerProv
             }),
           ),
         ),
-        Positioned(left: 116, top: 850, child: Pill(tr('NEXT LEVEL'), w: 344, h: 92, fs: 28, onTap: () => widget.onNext(context))),
+        Positioned(left: 116, top: 850, child: Pill(tr('NEXT LEVEL'), w: 344, h: 92, fs: 28, onTap: () async {
+          await Ads.maybeShowInterstitial();
+          if (context.mounted) widget.onNext(context);
+        })),
       ]),
     );
   }
@@ -351,6 +357,8 @@ class _ChallengeCompletedState extends State<ChallengeCompletedScreen> with Sing
   void _continue() async {
     if (_busy) return;
     _busy = true;
+    await Ads.maybeShowInterstitial();
+    if (!mounted) return;
     GameData.I.coins += widget.reward;
     GameData.I.save();
     Sfx.play('coin');

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'core/ads.dart';
 import 'core/audio.dart';
+import 'core/billing.dart';
 import 'core/data.dart';
 import 'screens/splash.dart';
 
@@ -14,6 +16,9 @@ Future<void> main() async {
     await Sfx.init();
   } catch (_) {}
   runApp(const WaterGlassApp());
+  // ads and billing start in the background so the splash is never blocked
+  Billing.init();
+  Ads.init();
 }
 
 class WaterGlassApp extends StatefulWidget {
@@ -38,7 +43,11 @@ class _WaterGlassAppState extends State<WaterGlassApp> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) Sfx.pauseAll();
-    if (state == AppLifecycleState.resumed) Sfx.resume();
+    if (state == AppLifecycleState.resumed) {
+      Sfx.resume();
+      Ads.onResume();
+      Billing.refreshEntitlements();
+    }
   }
 
   @override
